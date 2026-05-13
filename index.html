@@ -3,934 +3,548 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GIF Hub — Quick Operations Intelligence</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>GIF Hub — Quick Operations</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  :root {
-    --bg: #050C1A;
-    --panel: #0A1628;
-    --panel2: #0E1E35;
-    --border: #1B2E4A;
-    --accent: #0066FF;
-    --accent2: #00C2FF;
-    --orange: #FF6B35;
-    --danger: #FF3B5C;
-    --success: #00E5A0;
-    --text: #E8F0FF;
-    --muted: #5A7A9E;
-    --yellow: #FFD166;
-    --glow: rgba(0,102,255,0.15);
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ── NOISE TEXTURE ── */
-  body::before {
-    content:'';
-    position:fixed; inset:0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events:none; z-index:0;
-  }
-
-  /* ── HEADER ── */
-  header {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:20px 32px;
-    border-bottom:1px solid var(--border);
-    background:rgba(10,22,40,0.9);
-    backdrop-filter:blur(12px);
-    position:sticky; top:0; z-index:100;
-  }
-  .logo {
-    display:flex; align-items:center; gap:14px;
-  }
-  .logo-mark {
-    width:42px; height:42px; border-radius:10px;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));
-    display:grid; place-items:center;
-    font-weight:800; font-size:15px; letter-spacing:-1px;
-    box-shadow:0 0 20px var(--glow);
-  }
-  .logo-text { font-size:20px; font-weight:800; letter-spacing:-0.5px; }
-  .logo-text span { color:var(--accent2); }
-  .header-meta {
-    display:flex; align-items:center; gap:24px;
-  }
-  .data-badge {
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px; color:var(--muted);
-    background:var(--panel2); border:1px solid var(--border);
-    padding:6px 12px; border-radius:6px;
-  }
-  .live-dot {
-    display:flex; align-items:center; gap:6px;
-    font-size:12px; color:var(--success); font-family:'IBM Plex Mono',monospace;
-  }
-  .live-dot::before {
-    content:''; width:7px; height:7px; border-radius:50%;
-    background:var(--success);
-    animation:pulse 1.8s ease-in-out infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
-
-  /* ── FILTER BAR ── */
-  .filter-bar {
-    padding:16px 32px;
-    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-    border-bottom:1px solid var(--border);
-    background:rgba(10,22,40,0.7);
-  }
-  .filter-label { font-size:12px; color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-right:4px; }
-  select {
-    background:var(--panel2); border:1px solid var(--border);
-    color:var(--text); font-family:'Syne',sans-serif; font-size:13px;
-    padding:7px 12px; border-radius:8px; cursor:pointer;
-    outline:none; transition:border-color .2s;
-    appearance:none; -webkit-appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235A7A9E'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 10px center;
-    padding-right:28px;
-  }
-  select:hover, select:focus { border-color:var(--accent); }
-  .btn-reset {
-    background:var(--panel2); border:1px solid var(--border);
-    color:var(--muted); font-family:'Syne',sans-serif; font-size:12px;
-    padding:7px 14px; border-radius:8px; cursor:pointer; transition:all .2s;
-  }
-  .btn-reset:hover { border-color:var(--accent); color:var(--text); }
-  .filter-info {
-    margin-left:auto; font-size:12px; color:var(--muted);
-    font-family:'IBM Plex Mono',monospace;
-  }
-  #filter-count { color:var(--accent2); font-weight:600; }
-
-  /* ── MAIN GRID ── */
-  main { padding:28px 32px; position:relative; z-index:1; }
-
-  /* ── KPI STRIP ── */
-  .kpi-grid {
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
-    gap:14px; margin-bottom:28px;
-  }
-  .kpi-card {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:20px 22px;
-    position:relative; overflow:hidden;
-    transition:transform .2s, border-color .2s;
-  }
-  .kpi-card:hover { transform:translateY(-2px); border-color:var(--accent); }
-  .kpi-card::after {
-    content:''; position:absolute; top:0; left:0; right:0; height:2px;
-    background:var(--kpi-color,var(--accent));
-  }
-  .kpi-label {
-    font-size:11px; font-family:'IBM Plex Mono',monospace;
-    color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px;
-  }
-  .kpi-value {
-    font-size:26px; font-weight:800; letter-spacing:-1px;
-    color:var(--text); line-height:1;
-  }
-  .kpi-sub { font-size:12px; color:var(--muted); margin-top:6px; }
-  .kpi-trend {
-    position:absolute; top:18px; right:18px;
-    font-size:11px; font-family:'IBM Plex Mono',monospace;
-    padding:3px 8px; border-radius:4px;
-  }
-  .trend-up { background:rgba(0,229,160,.1); color:var(--success); }
-  .trend-down { background:rgba(255,59,92,.1); color:var(--danger); }
-  .trend-warn { background:rgba(255,209,102,.1); color:var(--yellow); }
-
-  /* ── CHART PANELS ── */
-  .charts-row {
-    display:grid; gap:18px; margin-bottom:20px;
-  }
-  .row-2 { grid-template-columns:1fr 1fr; }
-  .row-3 { grid-template-columns:1fr 1fr 1fr; }
-  .row-full { grid-template-columns:1fr; }
-  .row-21 { grid-template-columns:2fr 1.1fr; }
-  .row-12 { grid-template-columns:1.1fr 2fr; }
-
-  .chart-panel {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:22px 24px;
-    position:relative;
-    transition:border-color .2s;
-  }
-  .chart-panel:hover { border-color:rgba(0,102,255,0.3); }
-  .panel-header {
-    display:flex; align-items:flex-start; justify-content:space-between;
-    margin-bottom:18px;
-  }
-  .panel-title {
-    font-size:13px; font-weight:700; letter-spacing:.2px;
-    text-transform:uppercase; color:var(--text);
-  }
-  .panel-sub {
-    font-size:11px; color:var(--muted);
-    font-family:'IBM Plex Mono',monospace; margin-top:3px;
-  }
-  .panel-badge {
-    font-size:11px; font-family:'IBM Plex Mono',monospace;
-    padding:3px 9px; border-radius:5px;
-    background:rgba(0,102,255,0.12); color:var(--accent2);
-    border:1px solid rgba(0,102,255,0.2);
-    white-space:nowrap;
-  }
-  .panel-badge.warn {
-    background:rgba(255,59,92,.1); color:var(--danger);
-    border-color:rgba(255,59,92,.2);
-  }
-  canvas { width:100% !important; }
-
-  /* ── PEAK ALERT BAND ── */
-  .peak-band {
-    background:linear-gradient(90deg, rgba(255,59,92,.08), rgba(255,107,53,.06), rgba(255,59,92,.08));
-    border:1px solid rgba(255,59,92,.2);
-    border-radius:12px;
-    padding:14px 22px;
-    display:flex; align-items:center; gap:16px;
-    margin-bottom:20px; flex-wrap:wrap;
-  }
-  .peak-icon { font-size:22px; }
-  .peak-text { flex:1; min-width:200px; }
-  .peak-title { font-size:13px; font-weight:700; color:var(--danger); text-transform:uppercase; letter-spacing:.5px; }
-  .peak-body { font-size:12px; color:var(--muted); margin-top:3px; font-family:'IBM Plex Mono',monospace; }
-  .peak-stats { display:flex; gap:24px; flex-wrap:wrap; }
-  .peak-stat { text-align:center; }
-  .peak-stat-val { font-size:18px; font-weight:800; color:var(--danger); }
-  .peak-stat-lbl { font-size:11px; color:var(--muted); font-family:'IBM Plex Mono',monospace; }
-
-  /* ── TABLA EMPRESA ── */
-  .empresa-table { width:100%; border-collapse:collapse; }
-  .empresa-table th {
-    font-size:10px; text-transform:uppercase; letter-spacing:.8px;
-    color:var(--muted); font-family:'IBM Plex Mono',monospace;
-    padding:8px 12px; text-align:left; border-bottom:1px solid var(--border);
-  }
-  .empresa-table td {
-    font-size:13px; padding:10px 12px;
-    border-bottom:1px solid rgba(27,46,74,.5);
-  }
-  .empresa-table tr:last-child td { border-bottom:none; }
-  .empresa-table tr:hover td { background:rgba(0,102,255,.04); }
-  .bar-mini {
-    height:6px; border-radius:3px;
-    background:linear-gradient(90deg,var(--accent),var(--accent2));
-    transition:width .8s ease;
-  }
-  .badge-empresa {
-    display:inline-block; padding:2px 8px; border-radius:4px;
-    font-size:10px; font-family:'IBM Plex Mono',monospace; font-weight:500;
-  }
-  .badge-alto { background:rgba(255,107,53,.12); color:var(--orange); }
-  .badge-medio { background:rgba(0,194,255,.1); color:var(--accent2); }
-  .badge-bajo { background:rgba(90,122,158,.1); color:var(--muted); }
-
-  /* ── FOOTER ── */
-  footer {
-    text-align:center; padding:20px;
-    border-top:1px solid var(--border);
-    font-size:11px; color:var(--muted); font-family:'IBM Plex Mono',monospace;
-    position:relative; z-index:1;
-  }
-
-  /* ── TOOLTIP OVERRIDE ── */
-  .chartjs-tooltip-custom {
-    background:var(--panel2) !important;
-    border:1px solid var(--border) !important;
-    border-radius:10px !important;
-    font-family:'Syne',sans-serif !important;
-    color:var(--text) !important;
-    box-shadow:0 8px 32px rgba(0,0,0,.4) !important;
-  }
-
-  @media(max-width:900px) {
-    .row-2,.row-3,.row-21,.row-12 { grid-template-columns:1fr; }
-    main { padding:16px; }
-    header { padding:14px 16px; }
-    .filter-bar { padding:12px 16px; }
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --dk:#0B1F3A;--bl:#1A4B8C;--ac:#2D7DD2;--or:#F4820A;--orl:#FFF3E0;
+  --gr:#1A7A4A;--grl:#E8F5ED;--rd:#C0392B;--rdl:#FDECEA;
+  --yl:#D4A017;--yll:#FFF8E6;--g1:#F4F6F9;--g2:#E8ECF0;--g4:#94A3B8;
+  --g6:#5A6A7A;--sf:#fff;--bg:#F0F4F8;--br:#DDE3EA;--tx:#1E2D3D;--tm:#6B7C8D;
+  --rsm:6px;--rmd:10px;--rlg:16px;--sh:0 1px 3px rgba(0,0,0,0.08);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;font-size:14px;}
+.header{background:var(--dk);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;}
+.hbrand{display:flex;align-items:center;gap:12px;}
+.hlogo{width:32px;height:32px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;}
+.htitle{color:#fff;font-weight:600;font-size:15px;}
+.hsub{color:var(--g4);font-size:11px;font-family:'DM Mono',monospace;}
+.hright{display:flex;align-items:center;gap:12px;}
+.blive{background:rgba(26,122,74,.2);border:1px solid rgba(26,122,74,.4);color:#4ADE80;font-size:11px;padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace;}
+.breload{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 14px;border-radius:var(--rsm);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;}
+.breload:hover{background:rgba(255,255,255,.18);}
+.lupd{color:var(--g4);font-size:11px;font-family:'DM Mono',monospace;}
+.main{max-width:1440px;margin:0 auto;padding:24px 28px 48px;}
+.spin-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;}
+.spinner{width:40px;height:40px;border:3px solid var(--g2);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sptxt{color:var(--tm);font-size:13px;}
+.errbox{background:var(--rdl);border:1px solid #F5C6C3;border-radius:var(--rmd);padding:20px 24px;color:var(--rd);font-size:13px;margin:20px 0;}
+/* KPIs */
+.kgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px;}
+.kcard{background:var(--sf);border:1px solid var(--br);border-radius:var(--rlg);padding:18px 20px;box-shadow:var(--sh);position:relative;overflow:hidden;}
+.kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--rlg) var(--rlg) 0 0;}
+.kcard.bl::before{background:var(--ac);}
+.kcard.gr::before{background:var(--gr);}
+.kcard.rd::before{background:var(--rd);}
+.kcard.yl::before{background:var(--yl);}
+.kcard.gy::before{background:var(--g4);}
+.kcard.or::before{background:var(--or);}
+.klbl{font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
+.kval{font-size:24px;font-weight:600;color:var(--tx);line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums;}
+.ksub{font-size:11px;color:var(--tm);font-family:'DM Mono',monospace;}
+/* Alerta pico */
+.palert{background:var(--rdl);border:1px solid #F5C6C3;border-radius:var(--rmd);padding:14px 20px;display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+.paico{font-size:20px;}
+.patxt{flex:1;min-width:220px;}
+.patit{font-size:12px;font-weight:600;color:var(--rd);text-transform:uppercase;letter-spacing:.5px;}
+.pabod{font-size:12px;color:var(--tm);margin-top:3px;font-family:'DM Mono',monospace;}
+.pastats{display:flex;gap:24px;flex-wrap:wrap;}
+.pastat{text-align:center;}
+.pasval{font-size:18px;font-weight:600;color:var(--rd);}
+.paslbl{font-size:10px;color:var(--tm);font-family:'DM Mono',monospace;text-transform:uppercase;}
+/* Filtros */
+.fbar{background:var(--sf);border:1px solid var(--br);border-radius:var(--rmd);padding:14px 18px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:24px;box-shadow:var(--sh);}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.flbl{font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;}
+.fsel{height:34px;padding:0 10px;border:1px solid var(--br);border-radius:var(--rsm);background:var(--g1);color:var(--tx);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;min-width:145px;outline:none;}
+.fsel:focus{border-color:var(--ac);}
+.bclr{height:34px;padding:0 16px;background:var(--dk);color:#fff;border:none;border-radius:var(--rsm);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;align-self:flex-end;}
+.bclr:hover{background:var(--bl);}
+.finf{margin-left:auto;align-self:flex-end;font-size:11px;color:var(--tm);font-family:'DM Mono',monospace;}
+.finf span{color:var(--ac);font-weight:600;}
+/* Charts */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;}
+.cgrid3{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:24px;}
+.ccard{background:var(--sf);border:1px solid var(--br);border-radius:var(--rlg);padding:20px;box-shadow:var(--sh);}
+.cfull{background:var(--sf);border:1px solid var(--br);border-radius:var(--rlg);padding:20px;box-shadow:var(--sh);margin-bottom:24px;}
+.ctit{font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.ctit-badge{font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;}
+.tbadge-rd{background:var(--rdl);color:var(--rd);}
+.tbadge-yl{background:var(--yll);color:var(--yl);}
+.cwrap{position:relative;width:100%;}
+.leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tm);}
+.ld{width:10px;height:10px;border-radius:2px;}
+.dcenter{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;}
+.dnum{font-size:20px;font-weight:600;color:var(--tx);line-height:1;}
+.dlbl{font-size:10px;color:var(--tm);margin-top:2px;}
+/* Tabla */
+.tcard{background:var(--sf);border:1px solid var(--br);border-radius:var(--rlg);box-shadow:var(--sh);overflow:hidden;margin-bottom:24px;}
+.thbar{padding:14px 20px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;}
+.tsec{font-size:12px;font-weight:600;color:var(--g6);text-transform:uppercase;letter-spacing:.7px;}
+.twrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:var(--g1);padding:9px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;user-select:none;border-bottom:1px solid var(--br);}
+thead th:hover{background:var(--g2);}
+thead th.sorted{color:var(--ac);}
+tbody tr{border-bottom:1px solid var(--g1);}
+tbody tr:hover{background:var(--g1);}
+tbody tr:last-child{border-bottom:none;}
+tbody td{padding:9px 12px;font-size:12px;color:var(--tx);white-space:nowrap;}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;}
+.b-fin{background:var(--grl);color:var(--gr);}
+.b-can{background:var(--yll);color:var(--yl);}
+.b-fcan{background:var(--rdl);color:var(--rd);}
+.b-def{background:var(--g1);color:var(--g6);}
+.pag{padding:12px 20px;border-top:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.pinf{font-size:12px;color:var(--tm);}
+.pbtns{display:flex;gap:4px;}
+.pbtn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--br);border-radius:var(--rsm);background:#fff;font-size:12px;cursor:pointer;color:var(--tx);font-family:'DM Sans',sans-serif;}
+.pbtn:hover{background:var(--g1);}
+.pbtn.act{background:var(--dk);color:#fff;border-color:var(--dk);}
+.pbtn:disabled{opacity:.35;cursor:not-allowed;}
+.bexp{height:30px;padding:0 14px;background:#fff;border:1px solid var(--br);border-radius:var(--rsm);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;color:var(--tx);}
+.bexp:hover{background:var(--g1);}
+@media(max-width:1200px){.kgrid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:900px){.cgrid,.cgrid3{grid-template-columns:1fr;}.kgrid{grid-template-columns:repeat(2,1fr);}.header{padding:0 16px;}.main{padding:16px;}}
 </style>
 </head>
 <body>
-
-<header>
-  <div class="logo">
-    <div class="logo-mark">Q</div>
+<div class="header">
+  <div class="hbrand">
+    <div class="hlogo">Q</div>
     <div>
-      <div class="logo-text">GIF <span>Hub</span></div>
-      <div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;letter-spacing:.5px">GESTIÓN DE INDICADORES Y FLUJO</div>
+      <div class="htitle">GIF Hub — Gestión de Indicadores y Flujo</div>
+      <div class="hsub">Quick Operations · SmartQuick</div>
     </div>
   </div>
-  <div class="header-meta">
-    <div class="data-badge">ENE–MAY 2026 · 105,017 registros</div>
-    <div class="live-dot">GOOGLE SHEETS LIVE</div>
+  <div class="hright">
+    <span class="blive">● LIVE</span>
+    <span class="lupd" id="lupd">—</span>
+    <button class="breload" onclick="initDashboard()">↺ Actualizar</button>
   </div>
-</header>
-
-<div class="filter-bar">
-  <span class="filter-label">FILTROS:</span>
-  <select id="fCiudad" onchange="applyFilters()">
-    <option value="">Todas las ciudades</option>
-  </select>
-  <select id="fTipo" onchange="applyFilters()">
-    <option value="">Todos los tipos</option>
-  </select>
-  <select id="fEmpresa" onchange="applyFilters()">
-    <option value="">Todas las empresas</option>
-  </select>
-  <select id="fEstado" onchange="applyFilters()">
-    <option value="">Todos los estados</option>
-  </select>
-  <select id="fMes" onchange="applyFilters()">
-    <option value="">Todos los meses</option>
-    <option value="2026-01">Enero 2026</option>
-    <option value="2026-02">Febrero 2026</option>
-    <option value="2026-03">Marzo 2026</option>
-    <option value="2026-04">Abril 2026</option>
-    <option value="2026-05">Mayo 2026</option>
-  </select>
-  <button class="btn-reset" onclick="resetFilters()">↺ Limpiar</button>
-  <div class="filter-info">Mostrando <span id="filter-count">105,017</span> servicios</div>
 </div>
 
-<main>
-
-  <!-- KPI STRIP -->
-  <div class="kpi-grid" id="kpi-grid">
-    <div class="kpi-card" style="--kpi-color:var(--accent)">
-      <div class="kpi-label">Total Servicios</div>
-      <div class="kpi-value" id="kpi-total">105,017</div>
-      <div class="kpi-sub">Ene–May 2026</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--success)">
-      <div class="kpi-label">Ingreso Realizado</div>
-      <div class="kpi-value" id="kpi-ingreso">$4,793M</div>
-      <div class="kpi-sub">COP · Servicios finalizados</div>
-      <div class="kpi-trend trend-up">↑ EJECUTADO</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--danger)">
-      <div class="kpi-label">Venta Perdida</div>
-      <div class="kpi-value" id="kpi-perdida">$360M</div>
-      <div class="kpi-sub">COP · Servicios cancelados</div>
-      <div class="kpi-trend trend-down">⚠ RIESGO</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--yellow)">
-      <div class="kpi-label">Tasa Cancelación</div>
-      <div class="kpi-value" id="kpi-cancel-rate">6.65%</div>
-      <div class="kpi-sub" id="kpi-cancel-abs">6,986 cancelados</div>
-      <div class="kpi-trend trend-warn">↗ MONITOREAR</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--accent2)">
-      <div class="kpi-label">Ticket Promedio</div>
-      <div class="kpi-value" id="kpi-ticket">$48,893</div>
-      <div class="kpi-sub">COP por servicio</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--orange)">
-      <div class="kpi-label">Eficiencia Op.</div>
-      <div class="kpi-value" id="kpi-eficiencia">93.3%</div>
-      <div class="kpi-sub">Servicios finalizados</div>
-      <div class="kpi-trend trend-up">✓ SALUDABLE</div>
-    </div>
-  </div>
-
-  <!-- PEAK ALERT -->
-  <div class="peak-band" id="peak-band">
-    <div class="peak-icon">🔴</div>
-    <div class="peak-text">
-      <div class="peak-title">Pico máximo de cancelaciones detectado</div>
-      <div class="peak-body" id="peak-desc">03 Mar 2026 — 170 cancelaciones · $16.6M venta perdida en un solo día</div>
-    </div>
-    <div class="peak-stats">
-      <div class="peak-stat">
-        <div class="peak-stat-val" id="peak-max-cant">170</div>
-        <div class="peak-stat-lbl">CANCELACIONES</div>
-      </div>
-      <div class="peak-stat">
-        <div class="peak-stat-val" id="peak-max-val">$16.6M</div>
-        <div class="peak-stat-lbl">VENTA PERDIDA</div>
-      </div>
-      <div class="peak-stat">
-        <div class="peak-stat-val" id="peak-pct">2.4×</div>
-        <div class="peak-stat-lbl">VS PROMEDIO</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ROW 1: CANCELADOS TIMELINE (FULL) -->
-  <div class="charts-row row-full" style="margin-bottom:20px">
-    <div class="chart-panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">📉 Picos de Cancelaciones — Venta Perdida Diaria</div>
-          <div class="panel-sub">Cantidad de cancelaciones y $ COP no recuperados por día · Identifica patrones de riesgo operativo</div>
-        </div>
-        <div class="panel-badge warn" id="badge-perdida-total">Total: $359.6M</div>
-      </div>
-      <canvas id="chartCancelados" height="110"></canvas>
-    </div>
-  </div>
-
-  <!-- ROW 2: CIUDAD + TIPO -->
-  <div class="charts-row row-21" style="margin-bottom:20px">
-    <div class="chart-panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">🏙️ Servicios por Ciudad</div>
-          <div class="panel-sub">Volumen de operaciones y revenue por ciudad</div>
-        </div>
-        <div class="panel-badge" id="badge-ciudades">12 ciudades</div>
-      </div>
-      <canvas id="chartCiudad" height="220"></canvas>
-    </div>
-    <div class="chart-panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">🚚 Tipo de Servicio</div>
-          <div class="panel-sub">Distribución operativa</div>
-        </div>
-      </div>
-      <canvas id="chartTipo" height="220"></canvas>
-    </div>
-  </div>
-
-  <!-- ROW 3: EMPRESA + ESTADO -->
-  <div class="charts-row row-2" style="margin-bottom:20px">
-    <div class="chart-panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">🏢 Top Empresas — Concentración de Cartera</div>
-          <div class="panel-sub">Alerta: concentración revenue por cliente</div>
-        </div>
-        <div class="panel-badge warn">⚠ Riesgo concentración</div>
-      </div>
-      <canvas id="chartEmpresa" height="200"></canvas>
-    </div>
-    <div class="chart-panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">📊 Estado de Operaciones</div>
-          <div class="panel-sub">Distribución por estado del servicio</div>
-        </div>
-      </div>
-      <canvas id="chartEstado" height="200"></canvas>
-    </div>
-  </div>
-
-  <!-- ROW 4: TABLA EMPRESA DETALLE -->
-  <div class="charts-row row-full">
-    <div class="chart-panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">📋 Detalle de Empresas — Análisis de Concentración</div>
-          <div class="panel-sub">Participación en servicios e ingresos · Gestión de riesgo de cartera</div>
-        </div>
-      </div>
-      <table class="empresa-table" id="tablaEmpresas"></table>
-    </div>
-  </div>
-
-</main>
-
-<footer>
-  QUICK · GIF Hub v2.0 · Dirección de Operaciones · Datos: Google Sheets SmartQuick · Actualización: Tiempo real
-</footer>
+<div class="main" id="app">
+  <div class="spin-wrap"><div class="spinner"></div><div class="sptxt">Cargando datos desde Google Sheets…</div></div>
+</div>
 
 <script>
-// ═══════════════════════════════════════
-// DATA — Pre-computed from SmartQuick CSV
-// ═══════════════════════════════════════
-const RAW_DATA = {
-  ciudades: [
-    {Ciudad:"NEIVA",servicios:18059,ingreso:233257454.74},
-    {Ciudad:"VALLEDUPAR",servicios:17826,ingreso:236588996.52},
-    {Ciudad:"BOGOTA",servicios:17427,ingreso:1788026546.75},
-    {Ciudad:"PUERTO COLOMBIA",servicios:8858,ingreso:91248091.0},
-    {Ciudad:"BARRANQUILLA",servicios:6464,ingreso:281141454.78},
-    {Ciudad:"YOPAL",servicios:4532,ingreso:39668567.26},
-    {Ciudad:"MEDELLIN",servicios:3935,ingreso:595765901.03},
-    {Ciudad:"CUCUTA",servicios:3819,ingreso:100501335.0},
-    {Ciudad:"ARMENIA",servicios:2919,ingreso:68612931.31},
-    {Ciudad:"MONTERIA",servicios:2506,ingreso:48251851.16},
-    {Ciudad:"CALI",servicios:2252,ingreso:365910208.38},
-    {Ciudad:"CARTAGENA",servicios:2021,ingreso:136240193.98}
-  ],
-  tipos:[
-    {tipo:"Domicilio",servicios:76741,ingreso:1628452223.74},
-    {tipo:"Mensajería",servicios:16642,ingreso:1358479606.17},
-    {tipo:"Carry",servicios:11634,ingreso:2166208298.53}
-  ],
-  empresas:[
-    {nombre:"Cruz Verde S.A.S",corto:"Cruz Verde",servicios:44702,ingreso:544599717.15},
-    {nombre:"ZX Ventures Colombia",corto:"ZX Ventures",servicios:29260,ingreso:308937450.0},
-    {nombre:"Quick Help SA",corto:"Quick Help",servicios:25666,ingreso:3780615161.35},
-    {nombre:"CAFAM",corto:"CAFAM",servicios:1932,ingreso:224169137.42},
-    {nombre:"Colsubsidio",corto:"Colsubsidio",servicios:1046,ingreso:129622910.0},
-    {nombre:"Medicarte SAS",corto:"Medicarte",servicios:620,ingreso:80126228.0},
-    {nombre:"Cerescos S.A.S",corto:"Cerescos",servicios:311,ingreso:3477839.0},
-    {nombre:"Cinemark Colombia",corto:"Cinemark",servicios:215,ingreso:0}
-  ],
-  estados:[
-    {estado:"Finalizado",servicios:98025,ingreso:4792781370.78},
-    {estado:"Cancelado",servicios:6290,ingreso:279961798.13},
-    {estado:"Finalizado Cancelado",servicios:696,ingreso:79636472.53},
-    {estado:"En Espera",servicios:2,ingreso:171448.0},
-    {estado:"Asignado",servicios:2,ingreso:102993.0},
-    {estado:"Relanzado",servicios:2,ingreso:486046.0}
-  ],
-  cancelDia:[
-    {"Dia":"2026-01-01","cantidad":67,"venta_perdida":1999368.0},{"Dia":"2026-01-02","cantidad":54,"venta_perdida":2212851.0},{"Dia":"2026-01-03","cantidad":28,"venta_perdida":1367825.0},{"Dia":"2026-01-04","cantidad":34,"venta_perdida":1274615.0},{"Dia":"2026-01-05","cantidad":65,"venta_perdida":1731696.75},{"Dia":"2026-01-06","cantidad":38,"venta_perdida":1126311.0},{"Dia":"2026-01-07","cantidad":62,"venta_perdida":2056569.0},{"Dia":"2026-01-08","cantidad":49,"venta_perdida":1708363.0},{"Dia":"2026-01-09","cantidad":39,"venta_perdida":1272507.0},{"Dia":"2026-01-10","cantidad":50,"venta_perdida":1684142.0},{"Dia":"2026-01-11","cantidad":28,"venta_perdida":1168260.0},{"Dia":"2026-01-12","cantidad":35,"venta_perdida":1625589.0},{"Dia":"2026-01-13","cantidad":56,"venta_perdida":1800564.0},{"Dia":"2026-01-14","cantidad":60,"venta_perdida":2282951.0},{"Dia":"2026-01-15","cantidad":58,"venta_perdida":1471679.0},{"Dia":"2026-01-16","cantidad":51,"venta_perdida":2212755.0},{"Dia":"2026-01-17","cantidad":41,"venta_perdida":2229830.0},{"Dia":"2026-01-18","cantidad":19,"venta_perdida":1211474.0},{"Dia":"2026-01-19","cantidad":55,"venta_perdida":2073543.0},{"Dia":"2026-01-20","cantidad":44,"venta_perdida":1854856.0},{"Dia":"2026-01-21","cantidad":104,"venta_perdida":3611796.0},{"Dia":"2026-01-22","cantidad":55,"venta_perdida":1849775.0},{"Dia":"2026-01-23","cantidad":59,"venta_perdida":3047723.0},{"Dia":"2026-01-24","cantidad":52,"venta_perdida":1175841.0},{"Dia":"2026-01-25","cantidad":44,"venta_perdida":2000487.0},{"Dia":"2026-01-26","cantidad":34,"venta_perdida":1174250.0},{"Dia":"2026-01-27","cantidad":57,"venta_perdida":1714513.0},{"Dia":"2026-01-28","cantidad":64,"venta_perdida":3452061.0},{"Dia":"2026-01-29","cantidad":67,"venta_perdida":2547989.0},{"Dia":"2026-01-30","cantidad":77,"venta_perdida":3797978.0},{"Dia":"2026-01-31","cantidad":48,"venta_perdida":1782110.0},
-    {"Dia":"2026-02-01","cantidad":57,"venta_perdida":1562672.0},{"Dia":"2026-02-02","cantidad":82,"venta_perdida":4879756.0},{"Dia":"2026-02-03","cantidad":56,"venta_perdida":2997416.0},{"Dia":"2026-02-04","cantidad":97,"venta_perdida":6795376.0},{"Dia":"2026-02-05","cantidad":62,"venta_perdida":3649973.0},{"Dia":"2026-02-06","cantidad":52,"venta_perdida":1479006.13},{"Dia":"2026-02-07","cantidad":52,"venta_perdida":1940070.0},{"Dia":"2026-02-08","cantidad":47,"venta_perdida":1602957.0},{"Dia":"2026-02-09","cantidad":42,"venta_perdida":1460040.0},{"Dia":"2026-02-10","cantidad":31,"venta_perdida":1533166.0},{"Dia":"2026-02-11","cantidad":92,"venta_perdida":3735471.0},{"Dia":"2026-02-12","cantidad":54,"venta_perdida":1610255.0},{"Dia":"2026-02-13","cantidad":49,"venta_perdida":1697424.0},{"Dia":"2026-02-14","cantidad":52,"venta_perdida":1976340.0},{"Dia":"2026-02-15","cantidad":39,"venta_perdida":1810200.0},{"Dia":"2026-02-16","cantidad":44,"venta_perdida":1419745.0},{"Dia":"2026-02-17","cantidad":45,"venta_perdida":1327002.0},{"Dia":"2026-02-18","cantidad":50,"venta_perdida":1596254.94},{"Dia":"2026-02-19","cantidad":40,"venta_perdida":1465185.0},{"Dia":"2026-02-20","cantidad":41,"venta_perdida":1066229.0},{"Dia":"2026-02-21","cantidad":52,"venta_perdida":1527053.18},{"Dia":"2026-02-22","cantidad":18,"venta_perdida":876494.0},{"Dia":"2026-02-23","cantidad":43,"venta_perdida":1306474.0},{"Dia":"2026-02-24","cantidad":27,"venta_perdida":1565321.0},{"Dia":"2026-02-25","cantidad":54,"venta_perdida":2060890.0},{"Dia":"2026-02-26","cantidad":43,"venta_perdida":1806201.05},{"Dia":"2026-02-27","cantidad":43,"venta_perdida":2373989.0},{"Dia":"2026-02-28","cantidad":68,"venta_perdida":2725294.0},
-    {"Dia":"2026-03-01","cantidad":43,"venta_perdida":2579317.0},{"Dia":"2026-03-02","cantidad":78,"venta_perdida":5522017.0},{"Dia":"2026-03-03","cantidad":170,"venta_perdida":16556063.0},{"Dia":"2026-03-04","cantidad":117,"venta_perdida":7686211.0},{"Dia":"2026-03-05","cantidad":53,"venta_perdida":3264996.0},{"Dia":"2026-03-06","cantidad":73,"venta_perdida":4301547.0},{"Dia":"2026-03-07","cantidad":59,"venta_perdida":4095664.0},{"Dia":"2026-03-08","cantidad":37,"venta_perdida":1599117.0},{"Dia":"2026-03-09","cantidad":48,"venta_perdida":2414328.0},{"Dia":"2026-03-10","cantidad":34,"venta_perdida":2684604.0},{"Dia":"2026-03-11","cantidad":70,"venta_perdida":3246877.7},{"Dia":"2026-03-12","cantidad":57,"venta_perdida":2869782.0},{"Dia":"2026-03-13","cantidad":58,"venta_perdida":2385046.0},{"Dia":"2026-03-14","cantidad":49,"venta_perdida":2347412.0},{"Dia":"2026-03-15","cantidad":36,"venta_perdida":1189395.0},{"Dia":"2026-03-16","cantidad":101,"venta_perdida":7367256.0},{"Dia":"2026-03-17","cantidad":65,"venta_perdida":4537062.0},{"Dia":"2026-03-18","cantidad":109,"venta_perdida":6283745.0},{"Dia":"2026-03-19","cantidad":71,"venta_perdida":5282633.0},{"Dia":"2026-03-20","cantidad":83,"venta_perdida":5597956.03},{"Dia":"2026-03-21","cantidad":80,"venta_perdida":5391942.84},{"Dia":"2026-03-22","cantidad":63,"venta_perdida":3909758.0},{"Dia":"2026-03-23","cantidad":40,"venta_perdida":2120361.0},{"Dia":"2026-03-24","cantidad":73,"venta_perdida":4392856.0},{"Dia":"2026-03-25","cantidad":57,"venta_perdida":3438265.0},{"Dia":"2026-03-26","cantidad":52,"venta_perdida":2874242.0},{"Dia":"2026-03-27","cantidad":55,"venta_perdida":3035184.35},{"Dia":"2026-03-28","cantidad":65,"venta_perdida":3147603.0},{"Dia":"2026-03-29","cantidad":32,"venta_perdida":1345238.0},{"Dia":"2026-03-30","cantidad":111,"venta_perdida":9784365.0},{"Dia":"2026-03-31","cantidad":46,"venta_perdida":2000307.09},
-    {"Dia":"2026-04-01","cantidad":72,"venta_perdida":2523447.0},{"Dia":"2026-04-02","cantidad":43,"venta_perdida":2189742.0},{"Dia":"2026-04-03","cantidad":31,"venta_perdida":1727428.0},{"Dia":"2026-04-04","cantidad":51,"venta_perdida":1407650.0},{"Dia":"2026-04-05","cantidad":41,"venta_perdida":1291834.0},{"Dia":"2026-04-06","cantidad":52,"venta_perdida":3319513.0},{"Dia":"2026-04-07","cantidad":53,"venta_perdida":1553549.0},{"Dia":"2026-04-08","cantidad":54,"venta_perdida":2550108.0},{"Dia":"2026-04-09","cantidad":41,"venta_perdida":2512633.0},{"Dia":"2026-04-10","cantidad":55,"venta_perdida":2313567.0},{"Dia":"2026-04-11","cantidad":30,"venta_perdida":1202232.69},{"Dia":"2026-04-12","cantidad":27,"venta_perdida":1855100.0},{"Dia":"2026-04-13","cantidad":69,"venta_perdida":5531136.0},{"Dia":"2026-04-14","cantidad":41,"venta_perdida":1676873.0},{"Dia":"2026-04-15","cantidad":79,"venta_perdida":4341056.36},{"Dia":"2026-04-16","cantidad":68,"venta_perdida":4213075.0},{"Dia":"2026-04-17","cantidad":71,"venta_perdida":3827746.0},{"Dia":"2026-04-18","cantidad":42,"venta_perdida":2055340.0},{"Dia":"2026-04-19","cantidad":44,"venta_perdida":1248468.0},{"Dia":"2026-04-20","cantidad":30,"venta_perdida":1886950.0},{"Dia":"2026-04-21","cantidad":28,"venta_perdida":1599407.0},{"Dia":"2026-04-22","cantidad":66,"venta_perdida":3520866.0},{"Dia":"2026-04-23","cantidad":45,"venta_perdida":1276553.0},{"Dia":"2026-04-24","cantidad":32,"venta_perdida":2001835.15},{"Dia":"2026-04-25","cantidad":44,"venta_perdida":1873779.0},{"Dia":"2026-04-26","cantidad":19,"venta_perdida":1281583.0},{"Dia":"2026-04-27","cantidad":30,"venta_perdida":2735630.0},{"Dia":"2026-04-28","cantidad":26,"venta_perdida":1967763.0},{"Dia":"2026-04-29","cantidad":63,"venta_perdida":3407047.0},{"Dia":"2026-04-30","cantidad":31,"venta_perdida":1283837.0},
-    {"Dia":"2026-05-01","cantidad":25,"venta_perdida":1133664.0},{"Dia":"2026-05-02","cantidad":32,"venta_perdida":2154947.0},{"Dia":"2026-05-03","cantidad":24,"venta_perdida":556111.0},{"Dia":"2026-05-04","cantidad":71,"venta_perdida":4305051.52},{"Dia":"2026-05-05","cantidad":83,"venta_perdida":9739881.0},{"Dia":"2026-05-06","cantidad":63,"venta_perdida":4451503.0},{"Dia":"2026-05-07","cantidad":35,"venta_perdida":1925833.43},{"Dia":"2026-05-08","cantidad":37,"venta_perdida":2331895.45},{"Dia":"2026-05-09","cantidad":47,"venta_perdida":3734086.0},{"Dia":"2026-05-10","cantidad":34,"venta_perdida":2611624.0},{"Dia":"2026-05-11","cantidad":27,"venta_perdida":2220278.0},{"Dia":"2026-05-12","cantidad":19,"venta_perdida":639971.0}
-  ]
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTfWaa7WdisVlbqPofQfTLv5ja41pD42r1i71ZeroERP7xkHLZTcdeckJNHdXfl3fvyxDRpl2Lh5_77/pub?output=csv';
+
+const COL = {
+  id:'ID Servicio', ciudad:'Ciudad', tipo:'Tipo de Servicio',
+  empresa:'Empresa', estado:'Estado', fecha:'Fecha de solicitud',
+  precio:'Precio Total', metpago:'Método de Pago',
 };
 
-// ═══════════════════════════════════════
-// CHART INSTANCES
-// ═══════════════════════════════════════
-let charts = {};
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const PAL   = ['#2D7DD2','#F4820A','#1A7A4A','#C0392B','#6C5CE7','#00B894','#E17055','#0984E3','#D4A017','#A29BFE','#D63031','#00CEC9'];
 
-// COLOR PALETTE
-const PALETTE = {
-  blue:'#0066FF', cyan:'#00C2FF', orange:'#FF6B35',
-  danger:'#FF3B5C', success:'#00E5A0', yellow:'#FFD166',
-  muted:'#5A7A9E', purple:'#8B5CF6', pink:'#EC4899'
-};
-const CITY_COLORS = ['#0066FF','#00C2FF','#FF6B35','#00E5A0','#FFD166','#8B5CF6','#FF3B5C','#EC4899','#06B6D4','#10B981','#F59E0B','#EF4444'];
+let allData=[], filteredData=[], currentPage=1, sortCol=null, sortAsc=true, charts={};
+const PS=30;
 
-const fmtCOP = (v) => {
-  if(v >= 1e9) return '$'+(v/1e9).toFixed(1)+'B';
-  if(v >= 1e6) return '$'+(v/1e6).toFixed(1)+'M';
-  if(v >= 1e3) return '$'+(v/1e3).toFixed(0)+'K';
-  return '$'+v.toFixed(0);
-};
-const fmtN = (v) => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : v;
-
-// Global Chart defaults
-Chart.defaults.color = '#5A7A9E';
-Chart.defaults.borderColor = '#1B2E4A';
-Chart.defaults.font.family = "'Syne', sans-serif";
-
-// ═══════════════════════════════════════
-// POPULATE SELECTS
-// ═══════════════════════════════════════
-function populateFilters() {
-  const sel = (id, arr) => {
-    const s = document.getElementById(id);
-    arr.forEach(v => { const o = document.createElement('option'); o.value=v; o.textContent=v; s.appendChild(o); });
-  };
-  sel('fCiudad', RAW_DATA.ciudades.map(c=>c.Ciudad));
-  sel('fTipo', RAW_DATA.tipos.map(t=>t.tipo));
-  sel('fEmpresa', RAW_DATA.empresas.map(e=>e.corto));
-  sel('fEstado', RAW_DATA.estados.map(e=>e.estado));
-}
-
-// ═══════════════════════════════════════
-// FILTER LOGIC (client-side via pre-agg)
-// ═══════════════════════════════════════
-function applyFilters() {
-  const mes = document.getElementById('fMes').value;
-
-  // Filter cancel timeline by mes
-  let cd = RAW_DATA.cancelDia;
-  if(mes) cd = cd.filter(d => d.Dia.startsWith(mes));
-
-  // Recompute peak
-  if(cd.length > 0) {
-    const maxC = cd.reduce((a,b)=>b.cantidad>a.cantidad?b:a);
-    const maxV = cd.reduce((a,b)=>b.venta_perdida>a.venta_perdida?b:a);
-    const avgCant = cd.reduce((s,d)=>s+d.cantidad,0)/cd.length;
-    document.getElementById('peak-desc').textContent =
-      `${maxV.Dia} — ${maxC.cantidad} cancelaciones · ${fmtCOP(maxV.venta_perdida)} venta perdida en un solo día`;
-    document.getElementById('peak-max-cant').textContent = maxC.cantidad;
-    document.getElementById('peak-max-val').textContent = fmtCOP(maxV.venta_perdida);
-    document.getElementById('peak-pct').textContent = (maxC.cantidad/avgCant).toFixed(1)+'×';
+function parseCSV(txt){
+  const lines=txt.trim().split('\n');if(lines.length<2)return[];
+  const heads=parseRow(lines[0]);const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const v=parseRow(lines[i]);if(v.every(x=>x.trim()===''))continue;
+    const o={};heads.forEach((h,j)=>{o[h.trim()]=(v[j]||'').trim();});rows.push(o);
   }
-
-  // Update cancel chart
-  updateCancelChart(cd);
-
-  // Update KPIs
-  const totCancelados = cd.reduce((s,d)=>s+d.cantidad,0);
-  const totalPerdida = cd.reduce((s,d)=>s+d.venta_perdida,0);
-  document.getElementById('badge-perdida-total').textContent = 'Total: '+fmtCOP(totalPerdida);
-
-  const totalCount = mes ? cd.reduce((s,d)=>s+d.cantidad,0)*15 : 105017; // approx
-  document.getElementById('filter-count').textContent = totalCount.toLocaleString('es-CO');
+  return rows;
+}
+function parseRow(line){
+  const r=[];let c='',q=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){if(q&&line[i+1]==='"'){c+='"';i++;}else q=!q;}
+    else if(ch===','&&!q){r.push(c);c='';}
+    else c+=ch;
+  }
+  r.push(c);return r;
+}
+function toNum(v){return parseFloat((v||'').replace(/,/g,''))||0;}
+function extractFecha(s){
+  if(!s)return null;
+  const m1=s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if(m1){const y=m1[3].length===2?'20'+m1[3]:m1[3];return`${y}-${m1[1].padStart(2,'0')}-${m1[2].padStart(2,'0')}`;}
+  const m2=s.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m2)return`${m2[1]}-${m2[2]}-${m2[3]}`;
+  return null;
+}
+function extractYM(s){const d=extractFecha(s);return d?d.slice(0,7):null;}
+function mlabel(ym){const[y,mo]=ym.split('-');return`${MESES[parseInt(mo)-1]} ${y}`;}
+function countBy(data,field){const c={};data.forEach(r=>{const k=r[field]||'Sin datos';c[k]=(c[k]||0)+1;});return c;}
+function topN(obj,n){return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n);}
+function destroyAll(){Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});charts={};}
+function fmtCOP(v){
+  if(v>=1e9)return'$'+(v/1e9).toFixed(1)+'B';
+  if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';
+  if(v>=1e3)return'$'+(v/1e3).toFixed(0)+'K';
+  return'$'+v.toFixed(0);
+}
+function isCancelado(r){const e=(r[COL.estado]||'').toLowerCase();return e==='cancelado'||e==='finalizado cancelado';}
+function badgeEstado(v){
+  const lv=(v||'').toLowerCase();
+  if(lv==='finalizado')return`<span class="badge b-fin">Finalizado</span>`;
+  if(lv==='cancelado')return`<span class="badge b-can">Cancelado</span>`;
+  if(lv==='finalizado cancelado')return`<span class="badge b-fcan">Fin. Cancelado</span>`;
+  return`<span class="badge b-def">${v||'—'}</span>`;
 }
 
-function resetFilters() {
-  ['fCiudad','fTipo','fEmpresa','fEstado','fMes'].forEach(id => document.getElementById(id).value='');
-  applyFilters();
-  document.getElementById('filter-count').textContent = '105,017';
-}
-
-// ═══════════════════════════════════════
-// BUILD CHARTS
-// ═══════════════════════════════════════
-function buildCancelChart() {
-  const cd = RAW_DATA.cancelDia;
-  const labels = cd.map(d => {
-    const dt = new Date(d.Dia+'T00:00:00');
-    return dt.toLocaleDateString('es-CO',{day:'2-digit',month:'short'});
+function computeKPIs(data){
+  const total=data.length;
+  const fin=data.filter(r=>(r[COL.estado]||'').toLowerCase()==='finalizado').length;
+  const can=data.filter(r=>isCancelado(r)).length;
+  const ingreso=data.filter(r=>(r[COL.estado]||'').toLowerCase()==='finalizado').reduce((s,r)=>s+toNum(r[COL.precio]),0);
+  const perdida=data.filter(r=>isCancelado(r)).reduce((s,r)=>s+toNum(r[COL.precio]),0);
+  const ticket=fin?ingreso/fin:0;
+  const eficiencia=total?Math.round(fin/total*100):0;
+  const cancelDia={};
+  data.forEach(r=>{
+    if(!isCancelado(r))return;
+    const d=extractFecha(r[COL.fecha]);if(!d)return;
+    if(!cancelDia[d])cancelDia[d]={cant:0,val:0};
+    cancelDia[d].cant++;cancelDia[d].val+=toNum(r[COL.precio]);
   });
+  const peak=Object.entries(cancelDia).reduce((a,[d,v])=>v.val>(a[1]?.val||0)?[d,v]:a,['',{cant:0,val:0}]);
+  const avgC=can/Math.max(Object.keys(cancelDia).length,1);
+  return{total,fin,can,ingreso,perdida,ticket,eficiencia,peak,avgC,cancelDia};
+}
 
-  // Detect peaks (top 10%)
-  const vals = cd.map(d=>d.venta_perdida);
-  const p90 = vals.slice().sort((a,b)=>a-b)[Math.floor(vals.length*0.9)];
-  const bgColors = cd.map(d => d.venta_perdida >= p90 ? 'rgba(255,59,92,0.85)' : 'rgba(0,102,255,0.5)');
-  const borderColors = cd.map(d => d.venta_perdida >= p90 ? '#FF3B5C' : '#0066FF');
+function render(data){
+  const now=new Date();
+  const kpi=computeKPIs(data);
+  const ciudadesList=[...new Set(data.map(r=>r[COL.ciudad]).filter(Boolean))].sort();
+  const tiposList=[...new Set(data.map(r=>r[COL.tipo]).filter(Boolean))].sort();
+  const empresasList=[...new Set(data.map(r=>(r[COL.empresa]||'').trim()).filter(Boolean))].sort();
+  const estadosList=[...new Set(data.map(r=>r[COL.estado]).filter(Boolean))].sort();
+  const meses=[...new Set(data.map(r=>extractYM(r[COL.fecha])).filter(Boolean))].sort();
 
-  const ctx = document.getElementById('chartCancelados').getContext('2d');
-  charts.cancelados = new Chart(ctx, {
-    data: {
-      labels,
-      datasets: [
-        {
-          type:'bar',
-          label:'Venta Perdida (COP)',
-          data: cd.map(d=>d.venta_perdida),
-          backgroundColor: bgColors,
-          borderColor: borderColors,
-          borderWidth: 1,
-          borderRadius: 3,
-          yAxisID:'y1',
-          order:2
-        },
-        {
-          type:'line',
-          label:'Cancelaciones (#)',
-          data: cd.map(d=>d.cantidad),
-          borderColor:'#FFD166',
-          backgroundColor:'rgba(255,209,102,0.08)',
-          borderWidth:2,
-          pointRadius:0,
-          pointHoverRadius:5,
-          pointHoverBackgroundColor:'#FFD166',
-          fill:false,
-          tension:0.4,
-          yAxisID:'y2',
-          order:1
-        }
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:true,
-      interaction:{mode:'index', intersect:false},
-      plugins:{
-        legend:{
-          position:'top',
-          labels:{
-            color:'#5A7A9E', usePointStyle:true,
-            font:{size:11, family:"'Syne'"}
-          }
-        },
-        tooltip:{
-          backgroundColor:'#0E1E35',
-          borderColor:'#1B2E4A', borderWidth:1,
-          titleColor:'#E8F0FF', bodyColor:'#5A7A9E',
-          callbacks:{
-            label(ctx){
-              if(ctx.datasetIndex===0) return ' Venta perdida: '+fmtCOP(ctx.raw);
-              return ' Cancelaciones: '+ctx.raw;
-            }
-          }
-        }
-      },
+  document.getElementById('app').innerHTML=`
+  <div class="kgrid">
+    <div class="kcard bl"><div class="klbl">Total Servicios</div><div class="kval" id="kT">${kpi.total.toLocaleString('es-CO')}</div><div class="ksub">registros cargados</div></div>
+    <div class="kcard gr"><div class="klbl">Ingreso Realizado</div><div class="kval" id="kI">${fmtCOP(kpi.ingreso)}</div><div class="ksub">COP · Finalizados</div></div>
+    <div class="kcard rd"><div class="klbl">Venta Perdida</div><div class="kval" id="kP">${fmtCOP(kpi.perdida)}</div><div class="ksub">COP · Cancelados</div></div>
+    <div class="kcard yl"><div class="klbl">Tasa Cancelación</div><div class="kval" id="kTC">${kpi.total?(kpi.can/kpi.total*100).toFixed(1):0}%</div><div class="ksub" id="kTCsub">${kpi.can.toLocaleString('es-CO')} cancelados</div></div>
+    <div class="kcard or"><div class="klbl">Ticket Promedio</div><div class="kval" id="kTK">${fmtCOP(kpi.ticket)}</div><div class="ksub">COP por servicio</div></div>
+    <div class="kcard gy"><div class="klbl">Eficiencia Op.</div><div class="kval" id="kEF">${kpi.eficiencia}%</div><div class="ksub">${kpi.fin.toLocaleString('es-CO')} finalizados</div></div>
+  </div>
+
+  <div class="palert">
+    <div class="paico">🔴</div>
+    <div class="patxt">
+      <div class="patit">Pico máximo de cancelaciones — Venta perdida</div>
+      <div class="pabod" id="peakDesc">${kpi.peak[0]} · ${kpi.peak[1].cant} cancelaciones · ${fmtCOP(kpi.peak[1].val)} venta perdida en un día</div>
+    </div>
+    <div class="pastats">
+      <div class="pastat"><div class="pasval" id="peakCant">${kpi.peak[1].cant}</div><div class="paslbl">Cancelaciones</div></div>
+      <div class="pastat"><div class="pasval" id="peakVal">${fmtCOP(kpi.peak[1].val)}</div><div class="paslbl">Venta perdida</div></div>
+      <div class="pastat"><div class="pasval" id="peakMult">${(kpi.peak[1].cant/Math.max(kpi.avgC,1)).toFixed(1)}×</div><div class="paslbl">Vs promedio</div></div>
+    </div>
+  </div>
+
+  <div class="fbar">
+    <div class="fg"><div class="flbl">Mes</div>
+      <select class="fsel" id="fMes" onchange="applyFilters()">
+        <option value="">Todos los meses</option>
+        ${meses.map(ym=>`<option value="${ym}">${mlabel(ym)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><div class="flbl">Ciudad</div>
+      <select class="fsel" id="fCiu" onchange="applyFilters()">
+        <option value="">Todas</option>
+        ${ciudadesList.map(v=>`<option value="${v}">${v}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><div class="flbl">Tipo de Servicio</div>
+      <select class="fsel" id="fTipo" onchange="applyFilters()">
+        <option value="">Todos</option>
+        ${tiposList.map(v=>`<option value="${v}">${v}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><div class="flbl">Empresa</div>
+      <select class="fsel" id="fEmp" onchange="applyFilters()" style="min-width:200px;">
+        <option value="">Todas</option>
+        ${empresasList.map(v=>`<option value="${v}">${v.length>45?v.slice(0,43)+'…':v}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><div class="flbl">Estado</div>
+      <select class="fsel" id="fEst" onchange="applyFilters()">
+        <option value="">Todos</option>
+        ${estadosList.map(v=>`<option value="${v}">${v}</option>`).join('')}
+      </select>
+    </div>
+    <button class="bclr" onclick="clearFilters()">✕ Limpiar</button>
+    <div class="finf">Mostrando <span id="filtCount">${kpi.total.toLocaleString('es-CO')}</span> servicios</div>
+  </div>
+
+  <div class="cfull">
+    <div class="ctit">
+      Picos de Cancelaciones — Venta Perdida Diaria (COP)
+      <span class="ctit-badge tbadge-rd" id="badgePerdida">Total: ${fmtCOP(kpi.perdida)}</span>
+    </div>
+    <div id="legCancel" class="leg"></div>
+    <div class="cwrap" style="height:260px;"><canvas id="cCancel"></canvas></div>
+  </div>
+
+  <div class="cgrid3">
+    <div class="ccard">
+      <div class="ctit">Top Ciudades — Servicios e Ingreso</div>
+      <div class="cwrap" style="height:270px;"><canvas id="cCiudad"></canvas></div>
+    </div>
+    <div class="ccard">
+      <div class="ctit">Tipo de Servicio</div>
+      <div id="legTipo" class="leg"></div>
+      <div class="cwrap" style="height:240px;position:relative;">
+        <canvas id="cTipo"></canvas>
+        <div class="dcenter"><div class="dnum" id="dTipoNum">${kpi.total.toLocaleString('es-CO')}</div><div class="dlbl">servicios</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cgrid">
+    <div class="ccard">
+      <div class="ctit">Top Empresas — Revenue COP <span class="ctit-badge tbadge-yl">⚠ Concentración</span></div>
+      <div class="cwrap" style="height:260px;"><canvas id="cEmpresa"></canvas></div>
+    </div>
+    <div class="ccard">
+      <div class="ctit">Distribución por Estado</div>
+      <div id="legEst" class="leg"></div>
+      <div class="cwrap" style="height:240px;position:relative;">
+        <canvas id="cEstado"></canvas>
+        <div class="dcenter"><div class="dnum" id="dEstNum">${kpi.total.toLocaleString('es-CO')}</div><div class="dlbl">servicios</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tcard">
+    <div class="thbar">
+      <div class="tsec" id="tCount">Detalle de Servicios</div>
+      <button class="bexp" onclick="exportCSV()">↓ Exportar CSV</button>
+    </div>
+    <div class="twrap"><table><thead id="tHead"></thead><tbody id="tBody"></tbody></table></div>
+    <div class="pag" id="pag"></div>
+  </div>`;
+
+  filteredData=[...data];
+  buildCharts(data);
+  buildTable(data);
+  document.getElementById('lupd').textContent=now.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+}
+
+function buildCharts(data){
+  destroyAll();
+  const kpi=computeKPIs(data);
+
+  // 1. Cancelaciones diarias
+  const dias=Object.keys(kpi.cancelDia).sort();
+  const vals=dias.map(d=>kpi.cancelDia[d].val);
+  const p90=[...vals].sort((a,b)=>a-b)[Math.floor(vals.length*0.9)]||0;
+  const bgBars=vals.map(v=>v>=p90?'rgba(192,57,43,0.8)':'rgba(45,125,210,0.5)');
+  const legC=document.getElementById('legCancel');
+  if(legC)legC.innerHTML=`
+    <span class="li"><span class="ld" style="background:#2D7DD2"></span>Venta perdida COP</span>
+    <span class="li"><span class="ld" style="background:rgba(192,57,43,0.8)"></span>Pico crítico (top 10%)</span>
+    <span class="li"><span class="ld" style="background:#D4A017"></span>Cancelaciones (#)</span>`;
+  const lblDias=dias.map(d=>{const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('es-CO',{day:'2-digit',month:'short'});});
+  charts.cancel=new Chart(document.getElementById('cCancel'),{
+    data:{labels:lblDias,datasets:[
+      {type:'bar',label:'Venta Perdida (COP)',data:vals,backgroundColor:bgBars,borderColor:vals.map(v=>v>=p90?'#C0392B':'#2D7DD2'),borderWidth:1,borderRadius:3,yAxisID:'y1',order:2},
+      {type:'line',label:'Cancelaciones (#)',data:dias.map(d=>kpi.cancelDia[d].cant),borderColor:'#D4A017',backgroundColor:'rgba(212,160,23,0.06)',borderWidth:2,pointRadius:0,pointHoverRadius:5,tension:0.4,fill:false,yAxisID:'y2',order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?` Venta perdida: ${fmtCOP(ctx.raw)}`:` Cancelaciones: ${ctx.raw}`}}},
       scales:{
-        x:{
-          grid:{color:'rgba(27,46,74,0.4)'},
-          ticks:{
-            maxTicksLimit:20,
-            color:'#3A5A7E',
-            font:{size:9}
-          }
-        },
-        y1:{
-          type:'linear', position:'left',
-          grid:{color:'rgba(27,46,74,0.4)'},
-          ticks:{
-            color:'#5A7A9E',
-            callback:v=>fmtCOP(v),
-            font:{size:10}
-          }
-        },
-        y2:{
-          type:'linear', position:'right',
-          grid:{drawOnChartArea:false},
-          ticks:{color:'#8A6A2E', font:{size:10}}
-        }
-      }
-    }
+        x:{grid:{display:false},ticks:{font:{size:9},maxTicksLimit:20,color:'#94A3B8'}},
+        y1:{position:'left',grid:{color:'#EEF2F5'},ticks:{callback:v=>fmtCOP(v),font:{size:10}}},
+        y2:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:10},color:'#D4A017'}}
+      }}
   });
-}
 
-function updateCancelChart(cd) {
-  if(!charts.cancelados) return;
-  const labels = cd.map(d => {
-    const dt = new Date(d.Dia+'T00:00:00');
-    return dt.toLocaleDateString('es-CO',{day:'2-digit',month:'short'});
+  // 2. Ciudades
+  const ciudadMap={};
+  data.forEach(r=>{
+    const k=r[COL.ciudad]||'Sin datos';
+    if(!ciudadMap[k])ciudadMap[k]={s:0,i:0};
+    ciudadMap[k].s++;
+    if((r[COL.estado]||'').toLowerCase()==='finalizado')ciudadMap[k].i+=toNum(r[COL.precio]);
   });
-  const vals = cd.map(d=>d.venta_perdida);
-  const p90 = vals.slice().sort((a,b)=>a-b)[Math.floor(vals.length*0.9)];
-  charts.cancelados.data.labels = labels;
-  charts.cancelados.data.datasets[0].data = vals;
-  charts.cancelados.data.datasets[0].backgroundColor = cd.map(d=>d.venta_perdida>=p90?'rgba(255,59,92,0.85)':'rgba(0,102,255,0.5)');
-  charts.cancelados.data.datasets[0].borderColor = cd.map(d=>d.venta_perdida>=p90?'#FF3B5C':'#0066FF');
-  charts.cancelados.data.datasets[1].data = cd.map(d=>d.cantidad);
-  charts.cancelados.update();
-}
-
-function buildCiudadChart() {
-  const ctx = document.getElementById('chartCiudad').getContext('2d');
-  const d = RAW_DATA.ciudades;
-  charts.ciudad = new Chart(ctx, {
+  const topC=Object.entries(ciudadMap).sort((a,b)=>b[1].s-a[1].s).slice(0,10);
+  charts.ciudad=new Chart(document.getElementById('cCiudad'),{
     type:'bar',
-    data:{
-      labels: d.map(c=>c.Ciudad),
-      datasets:[
-        {
-          label:'Servicios',
-          data: d.map(c=>c.servicios),
-          backgroundColor: d.map((_,i)=>CITY_COLORS[i]+'CC'),
-          borderColor: d.map((_,i)=>CITY_COLORS[i]),
-          borderWidth:1,
-          borderRadius:4,
-          yAxisID:'y'
-        },
-        {
-          label:'Ingreso COP',
-          data: d.map(c=>c.ingreso),
-          type:'line',
-          borderColor:'#FFD166',
-          backgroundColor:'rgba(255,209,102,0.05)',
-          borderWidth:2,
-          pointRadius:3,
-          pointBackgroundColor:'#FFD166',
-          fill:false,
-          tension:0.3,
-          yAxisID:'y2'
-        }
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{
-        legend:{labels:{color:'#5A7A9E',usePointStyle:true,font:{size:11}}},
-        tooltip:{
-          backgroundColor:'#0E1E35',borderColor:'#1B2E4A',borderWidth:1,
-          titleColor:'#E8F0FF',bodyColor:'#5A7A9E',
-          callbacks:{
-            label(ctx){
-              if(ctx.datasetIndex===1) return ' Ingreso: '+fmtCOP(ctx.raw);
-              return ' Servicios: '+ctx.raw.toLocaleString('es-CO');
-            }
-          }
-        }
-      },
+    data:{labels:topC.map(([k])=>k),datasets:[
+      {label:'Servicios',data:topC.map(([,v])=>v.s),backgroundColor:PAL.slice(0,topC.length).map(c=>c+'CC'),borderColor:PAL.slice(0,topC.length),borderWidth:1,borderRadius:4,yAxisID:'y'},
+      {label:'Ingreso COP',type:'line',data:topC.map(([,v])=>v.i),borderColor:'#F4820A',backgroundColor:'rgba(244,130,10,0.06)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#F4820A',fill:false,tension:0.3,yAxisID:'y2'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:11},usePointStyle:true}},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===1?` Ingreso: ${fmtCOP(ctx.raw)}`:` Servicios: ${ctx.raw.toLocaleString('es-CO')}`}}},
       scales:{
-        x:{grid:{color:'rgba(27,46,74,0.4)'},ticks:{color:'#5A7A9E',font:{size:10}}},
-        y:{grid:{color:'rgba(27,46,74,0.4)'},ticks:{color:'#5A7A9E',font:{size:10}}},
-        y2:{position:'right',grid:{drawOnChartArea:false},
-          ticks:{color:'#8A6A2E',callback:v=>fmtCOP(v),font:{size:10}}}
-      }
-    }
+        x:{grid:{display:false},ticks:{font:{size:10},maxRotation:30,autoSkip:false}},
+        y:{grid:{color:'#EEF2F5'},ticks:{font:{size:10}}},
+        y2:{position:'right',grid:{drawOnChartArea:false},ticks:{callback:v=>fmtCOP(v),font:{size:10},color:'#F4820A'}}
+      }}
   });
-}
 
-function buildTipoChart() {
-  const ctx = document.getElementById('chartTipo').getContext('2d');
-  const d = RAW_DATA.tipos;
-  charts.tipo = new Chart(ctx, {
+  // 3. Tipo de servicio — donut
+  const tipoMap={};data.forEach(r=>{const k=r[COL.tipo]||'Sin datos';tipoMap[k]=(tipoMap[k]||0)+1;});
+  const tLab=Object.keys(tipoMap),tVal=Object.values(tipoMap);
+  const tCol=['rgba(45,125,210,0.85)','rgba(26,122,74,0.85)','rgba(244,130,10,0.85)','rgba(192,57,43,0.85)'];
+  const tBor=['#2D7DD2','#1A7A4A','#F4820A','#C0392B'];
+  const legT=document.getElementById('legTipo');
+  if(legT)legT.innerHTML=tLab.map((l,i)=>`<span class="li"><span class="ld" style="background:${tBor[i]||PAL[i]}"></span>${l} <strong style="color:var(--tx)">${Math.round(tVal[i]/data.length*100)}%</strong></span>`).join('');
+  charts.tipo=new Chart(document.getElementById('cTipo'),{
     type:'doughnut',
-    data:{
-      labels: d.map(t=>t.tipo),
-      datasets:[{
-        data: d.map(t=>t.servicios),
-        backgroundColor:['rgba(0,102,255,0.8)','rgba(0,194,255,0.8)','rgba(255,107,53,0.8)'],
-        borderColor:['#0066FF','#00C2FF','#FF6B35'],
-        borderWidth:2,
-        hoverOffset:8
-      }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      cutout:'65%',
-      plugins:{
-        legend:{
-          position:'bottom',
-          labels:{color:'#5A7A9E',usePointStyle:true,pointStyle:'circle',font:{size:12},padding:16}
-        },
-        tooltip:{
-          backgroundColor:'#0E1E35',borderColor:'#1B2E4A',borderWidth:1,
-          titleColor:'#E8F0FF',bodyColor:'#5A7A9E',
-          callbacks:{
-            label(ctx){
-              const pct = (ctx.raw/RAW_DATA.tipos.reduce((s,t)=>s+t.servicios,0)*100).toFixed(1);
-              return ` ${ctx.raw.toLocaleString('es-CO')} (${pct}%)`;
-            }
-          }
-        }
-      }
+    data:{labels:tLab,datasets:[{data:tVal,backgroundColor:tCol,borderColor:tBor,borderWidth:2,hoverBorderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'66%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw.toLocaleString('es-CO')} (${Math.round(ctx.raw/data.length*100)}%)`}}}
     }
   });
-}
 
-function buildEmpresaChart() {
-  const ctx = document.getElementById('chartEmpresa').getContext('2d');
-  const d = RAW_DATA.empresas;
-  const totalIngreso = d.reduce((s,e)=>s+e.ingreso,0);
-  const colors = ['#FF3B5C','#0066FF','#00C2FF','#FFD166','#FF6B35','#8B5CF6','#10B981','#EC4899'];
-  charts.empresa = new Chart(ctx, {
+  // 4. Empresa — horizontal
+  const empMap={};
+  data.forEach(r=>{
+    const k=(r[COL.empresa]||'Sin datos').trim();
+    if(!empMap[k])empMap[k]=0;
+    if((r[COL.estado]||'').toLowerCase()==='finalizado')empMap[k]+=toNum(r[COL.precio]);
+  });
+  const topE=Object.entries(empMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const eCols=['#C0392B','#2D7DD2','#1A7A4A','#D4A017','#F4820A','#6C5CE7','#00B894'];
+  charts.emp=new Chart(document.getElementById('cEmpresa'),{
     type:'bar',
-    data:{
-      labels: d.map(e=>e.corto),
-      datasets:[{
-        label:'Ingreso COP',
-        data: d.map(e=>e.ingreso),
-        backgroundColor: d.map((_,i)=>colors[i]+'BB'),
-        borderColor: d.map((_,i)=>colors[i]),
-        borderWidth:1,
-        borderRadius:5
-      }]
-    },
-    options:{
-      indexAxis:'y',
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:'#0E1E35',borderColor:'#1B2E4A',borderWidth:1,
-          titleColor:'#E8F0FF',bodyColor:'#5A7A9E',
-          callbacks:{
-            label(ctx){
-              const pct=(ctx.raw/totalIngreso*100).toFixed(1);
-              return ` ${fmtCOP(ctx.raw)} (${pct}% del total)`;
-            }
-          }
-        }
-      },
-      scales:{
-        x:{
-          grid:{color:'rgba(27,46,74,0.4)'},
-          ticks:{color:'#5A7A9E',callback:v=>fmtCOP(v),font:{size:10}}
-        },
-        y:{grid:{display:false},ticks:{color:'#E8F0FF',font:{size:12,weight:'600'}}}
-      }
+    data:{labels:topE.map(([k])=>k.length>32?k.slice(0,30)+'…':k),datasets:[{label:'Ingreso COP',data:topE.map(([,v])=>v),backgroundColor:eCols.map(c=>c+'BB'),borderColor:eCols,borderWidth:1,borderRadius:5}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const tot=topE.reduce((s,[,v])=>s+v,0);return` ${fmtCOP(ctx.raw)} (${(ctx.raw/tot*100).toFixed(1)}%)`;}}}},
+      scales:{x:{grid:{color:'#EEF2F5'},ticks:{callback:v=>fmtCOP(v),font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:11}}}}}
+  });
+
+  // 5. Estado — donut
+  const estMap={};data.forEach(r=>{const k=r[COL.estado]||'Sin datos';estMap[k]=(estMap[k]||0)+1;});
+  const eLab=Object.keys(estMap),eVal=Object.values(estMap);
+  const eColMap={'Finalizado':'#1A7A4A','Cancelado':'#D4A017','Finalizado Cancelado':'#C0392B','En Espera':'#2D7DD2','Asignado':'#94A3B8','Relanzado':'#6C5CE7'};
+  const eCol=eLab.map(l=>eColMap[l]||'#94A3B8');
+  const legE=document.getElementById('legEst');
+  if(legE)legE.innerHTML=eLab.map((l,i)=>`<span class="li"><span class="ld" style="background:${eCol[i]}"></span>${l} <strong style="color:var(--tx)">${Math.round(eVal[i]/data.length*100)}%</strong></span>`).join('');
+  charts.est=new Chart(document.getElementById('cEstado'),{
+    type:'doughnut',
+    data:{labels:eLab,datasets:[{data:eVal,backgroundColor:eCol.map(c=>c+'BB'),borderColor:eCol,borderWidth:2,hoverBorderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'66%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw.toLocaleString('es-CO')} (${Math.round(ctx.raw/data.length*100)}%)`}}}
     }
   });
 }
 
-function buildEstadoChart() {
-  const ctx = document.getElementById('chartEstado').getContext('2d');
-  const d = RAW_DATA.estados;
-  const clrs = {'Finalizado':'#00E5A0','Cancelado':'#FF3B5C','Finalizado Cancelado':'#FFD166','En Espera':'#0066FF','Asignado':'#00C2FF','Relanzado':'#8B5CF6'};
-  charts.estado = new Chart(ctx, {
-    type:'polarArea',
-    data:{
-      labels: d.map(e=>e.estado),
-      datasets:[{
-        data: d.map(e=>e.servicios),
-        backgroundColor: d.map(e=>(clrs[e.estado]||'#5A7A9E')+'99'),
-        borderColor: d.map(e=>clrs[e.estado]||'#5A7A9E'),
-        borderWidth:2
-      }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{
-          position:'bottom',
-          labels:{color:'#5A7A9E',usePointStyle:true,font:{size:11},padding:12}
-        },
-        tooltip:{
-          backgroundColor:'#0E1E35',borderColor:'#1B2E4A',borderWidth:1,
-          titleColor:'#E8F0FF',bodyColor:'#5A7A9E',
-          callbacks:{
-            label(ctx){
-              const tot = d.reduce((s,e)=>s+e.servicios,0);
-              const pct=(ctx.raw/tot*100).toFixed(2);
-              return ` ${ctx.raw.toLocaleString('es-CO')} (${pct}%)`;
-            }
-          }
-        }
-      },
-      scales:{
-        r:{grid:{color:'rgba(27,46,74,0.5)'},ticks:{display:false}}
-      }
-    }
+function buildTable(data){
+  const cols=[
+    {key:COL.id,lbl:'ID Servicio'},
+    {key:COL.ciudad,lbl:'Ciudad'},
+    {key:COL.tipo,lbl:'Tipo Servicio'},
+    {key:COL.empresa,lbl:'Empresa'},
+    {key:COL.estado,lbl:'Estado'},
+    {key:COL.fecha,lbl:'Fecha Solicitud'},
+    {key:COL.precio,lbl:'Precio Total'},
+    {key:COL.metpago,lbl:'Método Pago'},
+  ];
+  const thead=document.getElementById('tHead'),tbody=document.getElementById('tBody');
+  if(!thead||!tbody)return;
+  thead.innerHTML='<tr>'+cols.map(c=>`<th onclick="sortTable('${c.key}')" class="${sortCol===c.key?'sorted':''}">${c.lbl}${sortCol===c.key?(sortAsc?' ↑':' ↓'):''}</th>`).join('')+'</tr>';
+  let sorted=[...data];
+  if(sortCol){sorted.sort((a,b)=>{const va=a[sortCol]||'',vb=b[sortCol]||'';const na=parseFloat(va.replace(/,/g,'')),nb=parseFloat(vb.replace(/,/g,''));if(!isNaN(na)&&!isNaN(nb))return sortAsc?na-nb:nb-na;return sortAsc?va.localeCompare(vb,'es'):vb.localeCompare(va,'es');});}
+  const start=(currentPage-1)*PS;
+  const page=sorted.slice(start,start+PS);
+  tbody.innerHTML=page.map(r=>'<tr>'+cols.map(c=>{
+    const v=r[c.key]||'';
+    if(c.key===COL.estado)return`<td>${badgeEstado(v)}</td>`;
+    if(c.key===COL.precio)return`<td style="font-family:'DM Mono',monospace;font-size:11px">${v?'$'+parseFloat(v.replace(/,/g,'')).toLocaleString('es-CO'):'—'}</td>`;
+    if(c.key===COL.empresa)return`<td title="${v}">${v.length>35?v.slice(0,33)+'…':v||'—'}</td>`;
+    return`<td>${v||'—'}</td>`;
+  }).join('')+'</tr>').join('');
+  const tc=document.getElementById('tCount');if(tc)tc.textContent=`Detalle — ${data.length.toLocaleString('es-CO')} servicios`;
+  renderPag(data.length);
+}
+function renderPag(total){
+  const pages=Math.ceil(total/PS);const el=document.getElementById('pag');if(!el)return;
+  const s=(currentPage-1)*PS+1,e=Math.min(currentPage*PS,total);
+  const btns=[];
+  btns.push(`<button class="pbtn" onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''}>‹</button>`);
+  pRange(currentPage,pages).forEach(p=>{
+    if(p==='…')btns.push(`<span style="padding:0 4px;line-height:28px;font-size:12px;color:var(--tm)">…</span>`);
+    else btns.push(`<button class="pbtn ${p===currentPage?'act':''}" onclick="goPage(${p})">${p}</button>`);
   });
+  btns.push(`<button class="pbtn" onclick="goPage(${currentPage+1})" ${currentPage>=pages?'disabled':''}>›</button>`);
+  el.innerHTML=`<span class="pinf">${s.toLocaleString('es-CO')}–${e.toLocaleString('es-CO')} de ${total.toLocaleString('es-CO')}</span><div class="pbtns">${btns.join('')}</div>`;
+}
+function pRange(cur,tot){
+  if(tot<=7)return Array.from({length:tot},(_,i)=>i+1);
+  const r=[1];if(cur>3)r.push('…');
+  for(let p=Math.max(2,cur-1);p<=Math.min(tot-1,cur+1);p++)r.push(p);
+  if(cur<tot-2)r.push('…');r.push(tot);return r;
+}
+function goPage(p){
+  const pages=Math.ceil(filteredData.length/PS);if(p<1||p>pages)return;
+  currentPage=p;buildTable(filteredData);
+  document.querySelector('.tcard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function sortTable(f){if(sortCol===f)sortAsc=!sortAsc;else{sortCol=f;sortAsc=true;}currentPage=1;buildTable(filteredData);}
+
+function applyFilters(){
+  const fMes=val('fMes'),fCiu=val('fCiu'),fTipo=val('fTipo'),fEmp=val('fEmp'),fEst=val('fEst');
+  filteredData=allData.filter(r=>{
+    if(fMes&&extractYM(r[COL.fecha])!==fMes)return false;
+    if(fCiu&&r[COL.ciudad]!==fCiu)return false;
+    if(fTipo&&r[COL.tipo]!==fTipo)return false;
+    if(fEmp&&(r[COL.empresa]||'').trim()!==fEmp)return false;
+    if(fEst&&r[COL.estado]!==fEst)return false;
+    return true;
+  });
+  currentPage=1;
+  const kpi=computeKPIs(filteredData);
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('kT',filteredData.length.toLocaleString('es-CO'));
+  set('kI',fmtCOP(kpi.ingreso));set('kP',fmtCOP(kpi.perdida));
+  set('kTC',filteredData.length?(kpi.can/filteredData.length*100).toFixed(1)+'%':'0%');
+  set('kTCsub',kpi.can.toLocaleString('es-CO')+' cancelados');
+  set('kTK',fmtCOP(kpi.ticket));set('kEF',kpi.eficiencia+'%');
+  set('dTipoNum',filteredData.length.toLocaleString('es-CO'));set('dEstNum',filteredData.length.toLocaleString('es-CO'));
+  set('peakDesc',`${kpi.peak[0]} · ${kpi.peak[1].cant} cancelaciones · ${fmtCOP(kpi.peak[1].val)} venta perdida en un día`);
+  set('peakCant',kpi.peak[1].cant);set('peakVal',fmtCOP(kpi.peak[1].val));
+  set('peakMult',(kpi.peak[1].cant/Math.max(kpi.avgC,1)).toFixed(1)+'×');
+  const bp=document.getElementById('badgePerdida');if(bp)bp.textContent='Total: '+fmtCOP(kpi.perdida);
+  set('filtCount',filteredData.length.toLocaleString('es-CO'));
+  buildCharts(filteredData);buildTable(filteredData);
+}
+function val(id){return(document.getElementById(id)||{}).value||'';}
+function clearFilters(){
+  ['fMes','fCiu','fTipo','fEmp','fEst'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  filteredData=[...allData];currentPage=1;applyFilters();
 }
 
-function buildTablaEmpresas() {
-  const d = RAW_DATA.empresas;
-  const totalS = d.reduce((s,e)=>s+e.servicios,0);
-  const totalI = d.reduce((s,e)=>s+e.ingreso,0);
-  const maxI = Math.max(...d.map(e=>e.ingreso));
-  const table = document.getElementById('tablaEmpresas');
-  table.innerHTML = `
-    <thead><tr>
-      <th>Empresa</th>
-      <th>Servicios</th>
-      <th>% Servicios</th>
-      <th>Ingreso COP</th>
-      <th>% Revenue</th>
-      <th>Concentración</th>
-      <th>Riesgo</th>
-    </tr></thead>
-    <tbody>
-      ${d.map(e=>{
-        const pctS = (e.servicios/totalS*100).toFixed(1);
-        const pctI = (e.ingreso/totalI*100).toFixed(1);
-        const barW = (e.ingreso/maxI*100).toFixed(0);
-        const riesgo = pctI > 60 ? ['badge-alto','CRÍTICO'] : pctI > 20 ? ['badge-medio','MEDIO'] : ['badge-bajo','BAJO'];
-        return `<tr>
-          <td style="font-weight:700;color:var(--text)">${e.corto}</td>
-          <td style="font-family:'IBM Plex Mono',monospace">${e.servicios.toLocaleString('es-CO')}</td>
-          <td style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">${pctS}%</td>
-          <td style="font-family:'IBM Plex Mono',monospace;color:var(--accent2)">${fmtCOP(e.ingreso)}</td>
-          <td style="font-family:'IBM Plex Mono',monospace;color:${parseFloat(pctI)>50?'var(--danger)':parseFloat(pctI)>20?'var(--yellow)':'var(--muted)'};font-weight:700">${pctI}%</td>
-          <td style="min-width:100px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <div class="bar-mini" style="width:${barW}%"></div>
-              <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono'">${barW}%</span>
-            </div>
-          </td>
-          <td><span class="badge-empresa ${riesgo[0]}">${riesgo[1]}</span></td>
-        </tr>`;
-      }).join('')}
-    </tbody>
-  `;
+function exportCSV(){
+  if(!filteredData.length)return;
+  const cols=[COL.id,COL.ciudad,COL.tipo,COL.empresa,COL.estado,COL.fecha,COL.precio,COL.metpago];
+  const rows=[cols.join(','),...filteredData.map(r=>cols.map(c=>`"${(r[c]||'').replace(/"/g,'""')}"`).join(','))];
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'}));
+  a.download=`quick_operaciones_${new Date().toISOString().slice(0,10)}.csv`;a.click();
 }
 
-// ═══════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  populateFilters();
-  buildCancelChart();
-  buildCiudadChart();
-  buildTipoChart();
-  buildEmpresaChart();
-  buildEstadoChart();
-  buildTablaEmpresas();
-});
+async function initDashboard(){
+  document.getElementById('app').innerHTML=`<div class="spin-wrap"><div class="spinner"></div><div class="sptxt">Cargando datos desde Google Sheets…</div></div>`;
+  try{
+    const res=await fetch(CSV_URL);
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const txt=await res.text();
+    allData=parseCSV(txt);
+    if(!allData.length)throw new Error('El CSV no tiene registros.');
+    render(allData);
+  }catch(err){
+    document.getElementById('app').innerHTML=`<div class="errbox"><strong>⚠ No se pudo cargar la fuente de datos</strong><br><br>${err.message}<br><br>Verifica que la hoja esté publicada como CSV en Google Sheets y que el navegador tenga acceso a internet.</div>`;
+  }
+}
+initDashboard();
 </script>
 </body>
 </html>
